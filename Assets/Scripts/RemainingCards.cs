@@ -49,7 +49,7 @@ public class RemainingCards : MonoBehaviour
         suitCards[card.GetCardSuit()].Remove(card);
     }
 
-
+    // Returns a list of the highest ranked cards of each suit that have not been played yet. 
     public List<CardScript> GetBestRemainingCards()
     {
         List<CardScript> bestCardsList = new List<CardScript>();
@@ -65,6 +65,7 @@ public class RemainingCards : MonoBehaviour
         return bestCardsList;
     }
 
+    // Returns the number of cards of the given parameter suit that have not yet been played.
     public int RemainingCardsOfSuit(Suit suit)
     {
         return suitCards[suit].Count;

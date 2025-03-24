@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using TMPro;
 using Unity.Mathematics;
 using Unity.VisualScripting;
@@ -550,12 +551,14 @@ public class PlayerScript : MonoBehaviour
 
         this.tableCards = cardsOnTable.GetCardsOnTable();
 
+        // If player has the first turn of the current round.
         if(tableCards.Count == 0)
         {   
             Debug.Log($"{this.gameObject.name} has first turn for round: {GameManager.GetCurrentRound()}.");
             
             List<CardScript> bestCardsOwned = GetBestCards(this.handCards);
 
+            // If player does not have any best cards, place the the lowest ranked card among most common suits owned by the player.
             if(bestCardsOwned == null)
             {   
                 Debug.Log($"{this.gameObject.name} does not have any top cards.");
@@ -564,6 +567,7 @@ public class PlayerScript : MonoBehaviour
                 CardScript cardToPlay = GetLowestRankOfMostCommonSuit();
                 RemoveCardFromHand(cardToPlay);
             }
+            // If players has one or more best cards.
             else
             {   
                 Debug.Log($"{this.gameObject.name}'s top cards are: ");
@@ -571,12 +575,14 @@ public class PlayerScript : MonoBehaviour
 
                 CardScript cardToPlay = WhichCardToPlay(bestCardsOwned);
 
+                // If player has a best card that has a low change of getting trumped (i.e. winning the current round).
                 if(cardToPlay != null)
                 {
                     Debug.Log($"Least risky card to play is: {cardToPlay.GetCardRank()} of {cardToPlay.GetCardSuit()}");
                     
                     RemoveCardFromHand(cardToPlay);
                 }
+                // If all of players best cards have high chances of getting trumped (i.e. losing the current round). 
                 else
                 {   
                     //Play lowest ranked card from the most common suit in this player hand.
@@ -590,45 +596,58 @@ public class PlayerScript : MonoBehaviour
                 }
             }
         }
+        // If player does not have the first turn of the current round.
         else
         {   
             Debug.Log($"{this.gameObject.name} has turn: {GameManager.GetCurrentTurn()} for round: {GameManager.GetCurrentRound()}.");
             
             List<CardScript> requiredSuitCardsOnHand = GetRequiredSuitCards();
             
+            // If player does not have any cards of the required suit.
             if(requiredSuitCardsOnHand.Count == 0)
             {
                 Debug.Log($"{this.gameObject.name} does not have any {this.requiredSuit} cards.");
                 
                 List<CardScript> spadeCardsOnHand = GetAvailableSpades();
 
+                // If player does not have any Spade cards.
                 if(spadeCardsOnHand.Count == 0)
                 {
-                    //RemoveRandomCard(); //This needs to be changed.
                     Debug.Log($"{this.gameObject.name} does not have any Spade cards");
 
-                    //Currently, if there are multiple suits that are most common, players will place which ever is first list.
+                    // Player will instead place lowest ranked card amoung the most common suit(s).
                     CardScript cardToPlay = GetLowestRankOfMostCommonSuit();
 
                     Debug.Log($"Instead playing: {cardToPlay.GetCardRank()} of {cardToPlay.GetCardSuit()}");
 
                     RemoveCardFromHand(cardToPlay); 
                 }
+                // If player has any Spade card(s).
                 else
                 {
-                    PlaceLowestRankedSpadeCard(spadeCardsOnHand);
+                    // If current hand has already been Trumped.
+                    if(CheckIfAlreadyTrumped())
+                    {
+                        PlaceAppropriateSpadeCard(spadeCardsOnHand);
+                    }
+                    // If previous player(s) have not yet placed any Trump cards.
+                    else
+                    {
+                        PlaceLowestRankedSpadeCard(spadeCardsOnHand);
+                    }
                 }
-
             }
+            // If player has card(s) of the required suit. 
             else
             {
                 this.highestRankOnTable = GetHighestRankOnTable();
 
                 List<CardScript> sutableRankCards = GetSutableRankCards(requiredSuitCardsOnHand);
 
+                // Checks if player can win current round with available list of sutableRankCards.
                 if(CheckIfWinable(sutableRankCards))
                 {   
-                    // (solved) Currently, if players have cards to win this round, they will try and win it with the most powerful sutable card they have even when they can win it with a lower powered card, thus losing a chace to win an exta hand.
+                    // If player has the last turn of the current round.
                     if(GameManager.GetCurrentTurn() == 3)
                     {
                         Debug.Log("This is the last turn of this round, so there is no risk factor.");
@@ -642,6 +661,7 @@ public class PlayerScript : MonoBehaviour
 
                     List<CardScript> bestAmongSutableCards = GetBestCards(sutableRankCards);
 
+                    // If there are no best cards amoung the player's sutableRankCards.
                     if(bestAmongSutableCards == null)
                     {
                         Debug.Log($"{this.gameObject.name} does not have any top sutable cards.");
@@ -649,6 +669,7 @@ public class PlayerScript : MonoBehaviour
 
                         RemoveCardFromHand(sutableRankCards[0]); //----if player has an ace and others are unlikely to use trump cards, then he should play that card instead of playing the lowest rank of the sutableRankCards.
                     }
+                    // If there are best cards amoung the player's sutableRankCards.
                     else
                     {
                         Debug.Log($"{this.gameObject.name}'s top sutable cards are: ");
@@ -656,12 +677,14 @@ public class PlayerScript : MonoBehaviour
 
                         CardScript cardToPlay = WhichCardToPlay(bestAmongSutableCards);
 
+                        // If one of the bestAmongSutableCards cards has low chance of getting trumpped. 
                         if(cardToPlay != null)
                         {
                             Debug.Log($"Least risky sutable card to play is: " + GiveCardInfo(cardToPlay));
                             
                             RemoveCardFromHand(cardToPlay);
                         }
+                        // If all of the bestAmongSutableCards cards have high chance of getting trumpped. 
                         else
                         {   
                             Debug.Log($"{this.gameObject.name}'s top sutable cards are too risky to play");
@@ -671,6 +694,7 @@ public class PlayerScript : MonoBehaviour
                         }
                     }
                 }
+                // If player can not win current round with thier cards in the sutableRankCards list.
                 else
                 {
                     Debug.Log($"{this.gameObject.name} does not have required cards to win ths round");
@@ -684,8 +708,10 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
+    // Sets the required suit for the current round. And returns the list of cards of the required suit owned by the player.
     private List<CardScript> GetRequiredSuitCards()
     {   
+        // Used for error handeling. 
         if (tableCards == null || tableCards.Count == 0)
         {
             Debug.LogWarning("GetRequiredSuitCards: tableCards is empty. Returning an empty list.");
@@ -711,7 +737,7 @@ public class PlayerScript : MonoBehaviour
         return cardsOfRequiredSuit;
     }
 
-
+    // Returns the highest ranked card on the table. 
     private Rank GetHighestRankOnTable()
     {
         int highestValue = 0;
@@ -736,6 +762,8 @@ public class PlayerScript : MonoBehaviour
         return highestRank;
     }
 
+    // Returns list of cards owned by player that are higher ranked than the current highest ranked card on the table. 
+    // If player does not have any higher ranked cards, then ir returns all of the given availableSuitCards.
     private List<CardScript> GetSutableRankCards(List<CardScript> availableSuitCards)
     {   
         Debug.Log("GetSutableRankCards() function has run.");
@@ -763,6 +791,7 @@ public class PlayerScript : MonoBehaviour
         
     } 
 
+    // Returns the list of Spade cards owned by the player. 
     private List<CardScript> GetAvailableSpades()
     {
         List<CardScript> availableSpadeCards = new List<CardScript>();
@@ -781,12 +810,13 @@ public class PlayerScript : MonoBehaviour
     }
 
 
+    // Makes the player place the lowest ranked Spade card owned by them.
     private void PlaceLowestRankedSpadeCard(List<CardScript> availableSpades)
     {
         int lowestValue = 15;
-        CardScript worstSpadeCard= null;
+        CardScript worstSpadeCard = null;
         
-
+        // Finding the lowest ranked spade card.
         for(int i = 0; i < availableSpades.Count; ++i)
         {   
             int currentCardValue = GetRankValue(availableSpades[i].GetCardRank());
@@ -803,15 +833,16 @@ public class PlayerScript : MonoBehaviour
         RemoveCardFromHand(worstSpadeCard);
     }
 
-
+    // Checks if player can win the current round with thier available sutableCardsList. 
     private bool CheckIfWinable(List<CardScript> sutableCardsList)
     {   
         this.requiredSuit = tableCards[0].GetCardSuit();
 
-        if(requiredSuit != Suit.Spades)  // This checks if current hand/round has already been trumped by another player.
+        if(requiredSuit != Suit.Spades)  // Skips of required suit is not Spade.
         {
             this.tableCards = cardsOnTable.GetCardsOnTable();
-        
+
+            // This checks if current hand/round has already been trumped by another player.
             for(int i = 0; i < tableCards.Count; ++i)
             {
                 if(tableCards[i].GetCardSuit() == Suit.Spades)
@@ -841,6 +872,8 @@ public class PlayerScript : MonoBehaviour
         return false;
     }
 
+    // Returns a list of the current highest ranked cards of each suit that are in the given cardList parameter.
+    // Returns null if the cardList does not have a highest ranked card any suit.
     private List<CardScript> GetBestCards(List<CardScript> cardList)
     {
         List<CardScript> bestRemainingCards = remainingCards.GetBestRemainingCards();
@@ -865,6 +898,67 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
+    // Checks if the current round has been Trumped with a Spade card.
+    private bool CheckIfAlreadyTrumped()
+    {
+        for(int i = 0; i < tableCards.Count; ++i)
+        {
+            if(tableCards[i].GetCardSuit() == Suit.Spades)
+            {
+                Debug.Log("Already Trumped.");
+                return true;
+            }
+        }
+
+        Debug.Log("Not Trumped.");
+        return false;
+    }
+
+    // Makes the player place the appropriate Spade card based on the current Spade cards placed on the table.
+    private void PlaceAppropriateSpadeCard(List<CardScript> availableSpades)
+    {
+        Debug.Log("PlaceAppropriateSpadeCard() has run.");
+        
+        List<CardScript> bestRemainingCards = remainingCards.GetBestRemainingCards();
+
+        // If player has the best remaining Spade card, then they will place that card.
+        for(int i = 0; i < bestRemainingCards.Count; ++i)
+        {
+            if(availableSpades.Contains(bestRemainingCards[i]))
+            {
+                RemoveCardFromHand(bestRemainingCards[i]);
+                return;
+            }
+        }
+
+        CardScript bestSpadeOnTable = null;
+        int highestRank = 0;
+
+        // Finding the highest ranked Spade card currently on the table.
+        for(int i = 0; i < tableCards.Count; ++i)
+        {
+            if(tableCards[i].GetCardSuit() == Suit.Spades && GetRankValue(tableCards[i].GetCardRank()) > highestRank)
+            {
+                highestRank = GetRankValue(tableCards[i].GetCardRank());
+                bestSpadeOnTable = tableCards[i]; 
+            }
+        }
+
+        // Player will place their lowest ranked Spade card that is higher ranked than the current highest ranked Spade card on the table.
+        for(int i = 0; i < availableSpades.Count; ++i)
+        {
+            if(GetRankValue(availableSpades[i].GetCardRank()) > GetRankValue(bestSpadeOnTable.GetCardRank()))
+            {
+                RemoveCardFromHand(availableSpades[i]);
+                return;
+            }
+        }
+
+        // If player does not have a higher ranked Spade card than the current higest ranked Spade card on the table, then they will place the lowest ranked Spade card owned by them.
+        PlaceLowestRankedSpadeCard(availableSpades);
+    } 
+
+    // Returns the chance of getting trumped for a given best card owned by the player.
     private float CheckChanceOfGettingTrumped(CardScript bestCard)
     {
         int currentRound = GameManager.GetCurrentRound();
@@ -950,14 +1044,14 @@ public class PlayerScript : MonoBehaviour
         return chanceOfGettingTrumped;
     }
 
+    // Returns a single card among the given listOfBestCards, that has the best change of winning the current round.
     private CardScript WhichCardToPlay(List<CardScript> listOfBestCards)
     {   
         List<CardScript> cardList = new List<CardScript>();
 
+        // This condition prevents opponenets from using Spade cards in the first turn of the first round.
         if(GameManager.GetCurrentRound() == 0)
         {   
-            //This condition prevents opponenets from using Spade cards in the first turn of the first round.
-
             for(int i = 0; i < listOfBestCards.Count; ++i)
             {
                 if(listOfBestCards[i].GetCardSuit() != Suit.Spades)
@@ -986,7 +1080,7 @@ public class PlayerScript : MonoBehaviour
         
         for(int i = 0; i < cardList.Count; ++i)
         {
-            //Spade cards not be trumpped, so player is guarenteed to win if they have the current top most Spade Card.
+            //Spade cards can not be trumpped, so player is guarenteed to win if they have the current top most Spade Card.
             if(cardList[i].GetCardSuit() == Suit.Spades)  
             {   
                 return cardList[i];
@@ -1029,6 +1123,8 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
+    // Returns the lowest ranked card among the most common suits that is owned by the player.
+    // If there are multiple suits that are most common, players will place the lowest ranked cards among the most common suits.
     private CardScript GetLowestRankOfMostCommonSuit()
     {
         Debug.Log("GetLowestRankOfMostCommonSuit() has run.");
@@ -1037,6 +1133,7 @@ public class PlayerScript : MonoBehaviour
 
         foreach(Suit suitGroup in (Suit[])System.Enum.GetValues(typeof(Suit)))
         {   
+            // Ignores the list of Spade cards owned by the player.
             if(suitGroup == Suit.Spades)
             {
                 continue;
@@ -1063,6 +1160,7 @@ public class PlayerScript : MonoBehaviour
         //These make sure that among the most common suit cards, the card with the lest rank is returned.
         foreach(Suit suitGroup in (Suit[])System.Enum.GetValues(typeof(Suit)))
         {   
+            // Ignores the list of Spade cards owned by the player.
             if(suitGroup == Suit.Spades)
             {
                 continue;
