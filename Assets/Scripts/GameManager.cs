@@ -226,7 +226,7 @@ public class GameManager : MonoBehaviour
         {   
             if(playerList[playerTurn].gameObject.name == "Main-Player")
             {   
-                GameUpdateText.text = "Your turn.";
+                GameUpdateText.text = "Main-Player's turn.";
                 playerList[playerTurn].MainPlayerTurn();
             }
             else

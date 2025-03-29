@@ -563,7 +563,6 @@ public class PlayerScript : MonoBehaviour
             {   
                 Debug.Log($"{this.gameObject.name} does not have any top cards.");
 
-                //Currently, if there are multiple suits that are most common, players will place which ever is first list. 
                 CardScript cardToPlay = GetLowestRankOfMostCommonSuit();
                 RemoveCardFromHand(cardToPlay);
             }
@@ -606,7 +605,7 @@ public class PlayerScript : MonoBehaviour
             // If player does not have any cards of the required suit.
             if(requiredSuitCardsOnHand.Count == 0)
             {
-                Debug.Log($"{this.gameObject.name} does not have any {this.requiredSuit} cards.");
+                Debug.Log($"{this.gameObject.name} does not have any required {this.requiredSuit} cards.");
                 
                 List<CardScript> spadeCardsOnHand = GetAvailableSpades();
 
@@ -624,15 +623,19 @@ public class PlayerScript : MonoBehaviour
                 }
                 // If player has any Spade card(s).
                 else
-                {
+                {   
+                    Debug.Log($"{this.gameObject.name} has Spade cards");
+
                     // If current hand has already been Trumped.
                     if(CheckIfAlreadyTrumped())
                     {
+                        Debug.Log($"Current round has already been Trumped.");
                         PlaceAppropriateSpadeCard(spadeCardsOnHand);
                     }
                     // If previous player(s) have not yet placed any Trump cards.
                     else
                     {
+                        Debug.Log($"Placing lowest ranked Spade Card.");
                         PlaceLowestRankedSpadeCard(spadeCardsOnHand);
                     }
                 }
