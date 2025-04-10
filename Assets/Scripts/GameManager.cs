@@ -349,8 +349,10 @@ public class GameManager : MonoBehaviour
             Transform continueButton = scoreBoard.transform.Find("Continue Button");
             Transform exitButton = scoreBoard.transform.Find("Exit Button");
             Transform playAgainButton = scoreBoard.transform.Find("Play Again Button");
+            Transform closeButton = scoreBoard.transform.Find("Close Button");
 
             continueButton.gameObject.SetActive(false);
+            closeButton.gameObject.SetActive(false);
             exitButton.gameObject.SetActive(true);
             playAgainButton.gameObject.SetActive(true);
 
@@ -425,6 +427,37 @@ public class GameManager : MonoBehaviour
         
         cardsOnTable.ClearTable();
         scoreRecord.ClearRecord();
+    }
+
+    public void ShowScoreBoardButton()
+    {
+        scoreBoard.SetActive(true);
+
+        Transform continueButton = scoreBoard.transform.Find("Continue Button");
+        Transform exitButton = scoreBoard.transform.Find("Exit Button");
+        Transform playAgainButton = scoreBoard.transform.Find("Play Again Button");
+        Transform closeButton = scoreBoard.transform.Find("Close Button");
+
+        continueButton.gameObject.SetActive(false);
+        closeButton.gameObject.SetActive(true);
+        exitButton.gameObject.SetActive(false);
+        playAgainButton.gameObject.SetActive(false);
+
+    }
+
+    public void CloseScoreBoard()
+    {
+        scoreBoard.SetActive(false);
+
+        Transform continueButton = scoreBoard.transform.Find("Continue Button");
+        Transform exitButton = scoreBoard.transform.Find("Exit Button");
+        Transform playAgainButton = scoreBoard.transform.Find("Play Again Button");
+        Transform closeButton = scoreBoard.transform.Find("Close Button");
+
+        continueButton.gameObject.SetActive(true);
+        closeButton.gameObject.SetActive(false);
+        exitButton.gameObject.SetActive(false);
+        playAgainButton.gameObject.SetActive(false);
     }
 
     public void PlayAgainButton()
