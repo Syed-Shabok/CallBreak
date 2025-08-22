@@ -9,7 +9,6 @@ Play against AI opponents, predict your wins, and track scores across multiple r
 - Spade as trump rule  
 - Built for Android & PC  
 
-## Demo 
 ## 🎥 Demo  
 
 https://github.com/user-attachments/assets/aaeeda02-3e1e-4201-b7fa-3cc8ab219af5
